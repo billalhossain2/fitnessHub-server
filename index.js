@@ -51,6 +51,7 @@ const client = new MongoClient(uri, {
       const blogsCollection = client.db('fitnessDB').collection('blogs');
       const reviewsCollection = client.db('fitnessDB').collection('reviews');
       const featuresCollection = client.db('fitnessDB').collection('features');
+      const teamCollection = client.db('fitnessDB').collection('team');
 
       app.get("/blogs", async(req, res)=>{
         try {
@@ -75,6 +76,16 @@ const client = new MongoClient(uri, {
         try {
           const reviews = await reviewsCollection.find({}).toArray();
            res.send(reviews) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+
+      app.get("/team", async(req, res)=>{
+        try {
+          const team = await teamCollection.find({}).toArray();
+           res.send(team) 
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
