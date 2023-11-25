@@ -52,6 +52,11 @@ const client = new MongoClient(uri, {
       const reviewsCollection = client.db('fitnessDB').collection('reviews');
       const featuresCollection = client.db('fitnessDB').collection('features');
       const teamCollection = client.db('fitnessDB').collection('team');
+      const classesCollection = client.db('fitnessDB').collection('classes');
+      const schedulesCollection = client.db('fitnessDB').collection('schedules');
+      const forumsCollection = client.db('fitnessDB').collection('forums');
+      const trainersCollection = client.db('fitnessDB').collection('trainers');
+      const galleryCollection = client.db('fitnessDB').collection('gallery');
 
       app.get("/blogs", async(req, res)=>{
         try {
@@ -86,6 +91,51 @@ const client = new MongoClient(uri, {
         try {
           const team = await teamCollection.find({}).toArray();
            res.send(team) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/classes", async(req, res)=>{
+        try {
+          const classes = await classesCollection.find({}).toArray();
+           res.send(classes) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/schedules", async(req, res)=>{
+        try {
+          const schedules = await schedulesCollection.find({}).toArray();
+           res.send(schedules) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/forums", async(req, res)=>{
+        try {
+          const forums = await forumsCollection.find({}).toArray();
+           res.send(forums) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/gallery", async(req, res)=>{
+        try {
+          const gallery = await galleryCollection.find({}).toArray();
+           res.send(gallery) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/trainers", async(req, res)=>{
+        try {
+          const trainers = await trainersCollection.find({}).toArray();
+           res.send(trainers) 
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
