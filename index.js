@@ -61,10 +61,10 @@ const client = new MongoClient(uri, {
         }
       })
 
-      app.get("/reviews", async(req, res)=>{
+      app.get("/features", async(req, res)=>{
         try {
-          const reviews = await reviewsCollection.find({}).toArray();
-           res.send(reviews) 
+          const features = await featuresCollection.find({}).toArray();
+           res.send(features) 
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
