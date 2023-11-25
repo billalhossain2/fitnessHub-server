@@ -50,7 +50,7 @@ const client = new MongoClient(uri, {
       console.log("Pinged your deployment. You successfully connected to MongoDB!")
       const blogsCollection = client.db('fitnessDB').collection('blogs');
       const reviewsCollection = client.db('fitnessDB').collection('reviews');
-      const reviewsCollection = client.db('fitnessDB').collection('reviews');
+      const featuresCollection = client.db('fitnessDB').collection('features');
 
       app.get("/blogs", async(req, res)=>{
         try {
