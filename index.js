@@ -18,7 +18,7 @@ app.use(express.json());
 
 //default routes
 app.get('/', (req, res)=>{
-    res.send(`Server is running on port ${port}`)
+    res.send(`Fitness server is running on port ${port}`)
 })
 
 const verifyJwt = (req, res, next)=>{
@@ -48,6 +48,37 @@ const client = new MongoClient(uri, {
       // Send a ping to confirm a successful connection
       // await client.db("admin").command({ ping: 1 });
       console.log("Pinged your deployment. You successfully connected to MongoDB!")
+      const blogsCollection = client.db('fitnessDB').collection('blogs');
+      const reviewsCollection = client.db('fitnessDB').collection('reviews');
+      const reviewsCollection = client.db('fitnessDB').collection('reviews');
+
+      app.get("/blogs", async(req, res)=>{
+        try {
+          const blogs = await blogsCollection.find({}).toArray();
+           res.send(blogs) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/reviews", async(req, res)=>{
+        try {
+          const reviews = await reviewsCollection.find({}).toArray();
+           res.send(reviews) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+
+      app.get("/reviews", async(req, res)=>{
+        try {
+          const reviews = await reviewsCollection.find({}).toArray();
+           res.send(reviews) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
 
     } finally {
       // Ensures that the client will close when you finish/error
@@ -58,7 +89,7 @@ const client = new MongoClient(uri, {
 
 
 app.listen(port, ()=>{
-    console.log(`Server is listening at port ${port}`)
+    console.log(`Fitness server is listening at port ${port}`)
 })
 
 
