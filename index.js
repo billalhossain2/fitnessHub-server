@@ -71,6 +71,7 @@ const client = new MongoClient(uri, {
 
       const subscriptionsCollection = client.db('fitnessDB').collection('subscriptions');
       const usersCollection = client.db('fitnessDB').collection('users');
+      const appliedTrainersCollection = client.db('fitnessDB').collection('appliedTrainers');
 
       app.get("/blogs", async(req, res)=>{
         try {
@@ -222,6 +223,26 @@ const client = new MongoClient(uri, {
 
           const trainer = await trainersCollection.findOne(query);
            res.send(trainer) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.post("/trainers", async(req, res)=>{
+        try {
+        const newTrainer = req.body;
+        const result = await trainersCollection.insertOne(newTrainer);
+        res.send(result);
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.post("/applied-tainers", async(req, res)=>{
+        try {
+        const appliedTrainer = req.body;
+        const result = await appliedTrainersCollection.insertOne(appliedTrainer);
+        res.send(result);
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
