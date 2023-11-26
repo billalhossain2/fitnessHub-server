@@ -25,7 +25,7 @@ app.post("/set-cookie", (req, res)=>{
   res.send({token})
 })
 
-
+//Custom middlewares
 const verifyJwt = (req, res, next)=>{
   console.log('Verify Jwt first!!!')
 }
