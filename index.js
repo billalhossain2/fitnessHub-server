@@ -16,18 +16,29 @@ app.use(cors({
 }));
 app.use(express.json());
 
+
+//JWT Routes
+app.post("/set-cookie", (req, res)=>{
+  const user = req.body;
+  const token = jwt.sign(user, process.env.JWT_SECRET_KEY, {expiresIn:'1h'})
+  console.log('Token', token)
+  res.send({token})
+})
+
+
+const verifyJwt = (req, res, next)=>{
+  console.log('Verify Jwt first!!!')
+}
+
+const verifyAdmin = (req, res, next)=>{
+  
+}
+
+
 //default routes
 app.get('/', (req, res)=>{
     res.send(`Fitness server is running on port ${port}`)
 })
-
-const verifyJwt = (req, res, next)=>{
-    console.log('Verify Jwt first!!!')
-}
-
-const verifyAdmin = (req, res, next)=>{
-    
-}
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0ak1okw.mongodb.net/?retryWrites=true&w=majority`;
@@ -116,11 +127,47 @@ const client = new MongoClient(uri, {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
       })
-
+//Forums related apis
       app.get("/forums", async(req, res)=>{
+        //pagination
+        const page = parseInt(req.query.page);
+        const size = parseInt(req.query.size);
+
+      console.log('pagination query', page, size);
+      const result = await forumsCollection.find()
+      .skip(page * size)
+      .limit(size)
+      .toArray();
+      res.send(result);
+      })
+
+      app.put("/forums/:id", async(req, res)=>{
         try {
-          const forums = await forumsCollection.find({}).toArray();
-           res.send(forums) 
+          const email = req.body.email;
+          const forumId = req.params.id;
+          const query = {_id:new ObjectId(forumId)}
+
+          const forum = await forumsCollection.findOne(query);
+
+          console.log('user email======> ', email, 'forum email=========> ', forum.emails)
+          console.log(email===forum.emails)
+
+          if(forum?.emails===email){
+          const updateDoc = {
+              $set:{likes:forum.likes-1, emails:""}
+            }
+
+          const result = await forumsCollection.updateOne(query, updateDoc, {upsert:false});
+          res.send(result) 
+          return;
+          }
+
+          const updateDoc = {
+            $set:{likes:forum.likes+1, emails:email}
+          }
+          const result = await forumsCollection.updateOne(query, updateDoc, {upsert:false});
+          res.send(result) 
+
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
@@ -139,9 +186,20 @@ const client = new MongoClient(uri, {
       // users related apis 
       app.post("/users", async(req, res)=>{
         try {
+
           const newUser = req.body;
-          const result = await usersCollection.insertOne(newUser);
-          res.send(result);
+          const email = newUser.email;
+          const query = {email};
+
+          const isExist = await usersCollection.findOne(query);
+
+          //check if user already exist
+          if(!isExist){
+            const result = await usersCollection.insertOne(newUser);
+            res.send(result);
+          }
+          res.send([])
+
           } catch (error) {
             res.status(500).send({error:true, message:"There was a server side error"})
           }
