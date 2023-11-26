@@ -134,10 +134,23 @@ const client = new MongoClient(uri, {
         }
       })
 
+      //trainer related apis
       app.get("/trainers", async(req, res)=>{
         try {
           const trainers = await trainersCollection.find({}).toArray();
            res.send(trainers) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/trainers/:id", async(req, res)=>{
+        try {
+          const trainerId = req.params.id;
+          const query = {_id:new ObjectId(trainerId)}
+
+          const trainer = await trainersCollection.findOne(query);
+           res.send(trainer) 
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
