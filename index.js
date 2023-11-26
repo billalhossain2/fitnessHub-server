@@ -59,6 +59,7 @@ const client = new MongoClient(uri, {
       const galleryCollection = client.db('fitnessDB').collection('gallery');
 
       const subscriptionsCollection = client.db('fitnessDB').collection('subscriptions');
+      const usersCollection = client.db('fitnessDB').collection('users');
 
       app.get("/blogs", async(req, res)=>{
         try {
@@ -132,6 +133,18 @@ const client = new MongoClient(uri, {
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
+      })
+
+
+      // users related apis 
+      app.post("/users", async(req, res)=>{
+        try {
+          const newUser = req.body;
+          const result = await usersCollection.insertOne(newUser);
+          res.send(result);
+          } catch (error) {
+            res.status(500).send({error:true, message:"There was a server side error"})
+          }
       })
 
       //trainer related apis
