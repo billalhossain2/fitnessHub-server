@@ -179,9 +179,9 @@ const client = new MongoClient(uri, {
           console.log('user email======> ', email, 'forum email=========> ', forum.emails)
           console.log(email===forum.emails)
 
-          if(forum?.emails===email){
+          if(forum?.likedBy===email){
           const updateDoc = {
-              $set:{likes:forum.likes-1, emails:""}
+              $set:{likes:forum.likes-1, likedBy:""}
             }
 
           const result = await forumsCollection.updateOne(query, updateDoc, {upsert:false});
@@ -190,7 +190,7 @@ const client = new MongoClient(uri, {
           }
 
           const updateDoc = {
-            $set:{likes:forum.likes+1, emails:email}
+            $set:{likes:forum.likes+1, likedBy:email}
           }
           const result = await forumsCollection.updateOne(query, updateDoc, {upsert:false});
           res.send(result) 
@@ -304,12 +304,21 @@ const client = new MongoClient(uri, {
       })
 
 
-      //Post Api to add data
+      /*================================== Subscription Related APIs =================================*/
       app.post("/subscriptions", async(req, res)=>{
         try {
         const newSubscription = req.body;
         const result = await subscriptionsCollection.insertOne(newSubscription);
         res.send(result);
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.get("/subscriptions", verifyJwt, async(req, res)=>{
+        try {
+          const allSubscribers = await subscriptionsCollection.find().toArray();
+           res.send(allSubscribers) 
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
