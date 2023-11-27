@@ -155,13 +155,12 @@ const client = new MongoClient(uri, {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
       })
-//Forums related apis
+ /*================================== Forums Related APIs =================================*/
       app.get("/forums", async(req, res)=>{
         //pagination
         const page = parseInt(req.query.page);
         const size = parseInt(req.query.size);
 
-      console.log('pagination query', page, size);
       const result = await forumsCollection.find()
       .skip(page * size)
       .limit(size)
@@ -196,6 +195,16 @@ const client = new MongoClient(uri, {
           const result = await forumsCollection.updateOne(query, updateDoc, {upsert:false});
           res.send(result) 
 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.post("/forums", async(req, res)=>{
+        try {
+        const newForum = req.body;
+        const result = await forumsCollection.insertOne(newForum);
+        res.send(result);
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
