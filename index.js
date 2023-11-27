@@ -124,6 +124,18 @@ const client = new MongoClient(uri, {
         }
       })
 
+      app.get("/classes/:classId", async(req, res)=>{
+        try {
+          const classId = req.params.classId;
+          const query = {_id:new ObjectId(classId)}
+
+          const singleClass = await classesCollection.findOne(query);
+           res.send(singleClass) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
       app.post("/classes", async(req, res)=>{
         try {
         const newClass = req.body;
@@ -133,6 +145,7 @@ const client = new MongoClient(uri, {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
       })
+
 
       app.get("/schedules", async(req, res)=>{
         try {
