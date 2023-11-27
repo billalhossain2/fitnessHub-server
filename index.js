@@ -28,6 +28,9 @@ app.post("/set-cookie", (req, res)=>{
 //Custom middlewares
 const verifyJwt = (req, res, next)=>{
   console.log('Verify Jwt first!!!')
+  const data = req.headers;
+  console.log("Headers data========> ", data)
+  next()
 }
 
 const verifyAdmin = (req, res, next)=>{
@@ -111,10 +114,21 @@ const client = new MongoClient(uri, {
         }
       })
 
+      /*================================== Classes Related APIs =================================*/
       app.get("/classes", async(req, res)=>{
         try {
           const classes = await classesCollection.find({}).toArray();
            res.send(classes) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
+      app.post("/classes", async(req, res)=>{
+        try {
+        const newClass = req.body;
+        const result = await classesCollection.insertOne(newClass);
+        res.send(result);
         } catch (error) {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
@@ -206,6 +220,16 @@ const client = new MongoClient(uri, {
           }
       })
 
+      app.get("/users", async(req, res)=>{
+        try {
+          const query = {email:req.query?.email}
+          const loggedInUser = await usersCollection.findOne(query);
+          res.send({role:loggedInUser.role})
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
       //trainer related apis
       app.get("/trainers", async(req, res)=>{
         try {
@@ -247,6 +271,16 @@ const client = new MongoClient(uri, {
           res.status(500).send({error:true, message:"There was a server side error"})
         }
       })
+
+      app.get("/applied-tainers", verifyJwt, async(req, res)=>{
+        try {
+          const appliedTrainers = await appliedTrainersCollection.find().toArray();
+           res.send(appliedTrainers) 
+        } catch (error) {
+          res.status(500).send({error:true, message:"There was a server side error"})
+        }
+      })
+
 
       //Post Api to add data
       app.post("/subscriptions", async(req, res)=>{
