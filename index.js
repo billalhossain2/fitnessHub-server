@@ -69,15 +69,20 @@ async function run() {
     const forumsCollection = client.db("fitnessDB").collection("forums");
     const trainersCollection = client.db("fitnessDB").collection("trainers");
     const galleryCollection = client.db("fitnessDB").collection("gallery");
-    const bookedTrainersCollection = client.db("fitnessDB").collection("bookedTrainers");
+    const bookedTrainersCollection = client
+      .db("fitnessDB")
+      .collection("bookedTrainers");
+    const bookedPaymentsCollection = client
+      .db("fitnessDB")
+      .collection("bookedPayments");
+    const trainerPaymentsCollection = client
+      .db("fitnessDB")
+      .collection("trainerPayments");
 
     const subscriptionsCollection = client
       .db("fitnessDB")
       .collection("subscriptions");
     const usersCollection = client.db("fitnessDB").collection("users");
-    const appliedTrainersCollection = client
-      .db("fitnessDB")
-      .collection("appliedTrainers");
 
     app.get("/blogs", async (req, res) => {
       try {
@@ -123,21 +128,94 @@ async function run() {
       }
     });
 
-    /*================================== Booked Trainers Related APIs =================================*/
-    app.post("/booked-trainers", async(req, res)=>{
+    /*================================== Payment  Related APIs =================================*/
+    app.post("/booking-payments", async (req, res) => {
       try {
-        const newBookedTrainer = req.body;
-        const result = await bookedTrainersCollection.insertOne(newBookedTrainer);
+        const newPayment = req.body;
+        const result = await bookedPaymentsCollection.insertOne(newPayment);
         res.send(result);
       } catch (error) {
         res
           .status(500)
           .send({ error: true, message: "There was a server side error" });
       }
-    })
+    });
 
+    app.post("/trainer-payments", async (req, res) => {
+      try {
+        const newPayment = req.body;
+        const result = await trainerPaymentsCollection.insertOne(newPayment);
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "There was a server side error" });
+      }
+    });
+    
+//Change payment status
+    app.patch("/change-payment-status/:trainerId", async (req, res) => {
+      try {
+        const { trainerId } = req.params;
+        const filter = { _id: new ObjectId(trainerId) };
+        const updateDoc = {
+          $set: {
+            status: "paid",
+          },
+        };
+        const result = await trainersCollection.updateOne(filter, updateDoc, {
+          upsert: false,
+        });
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "There was a server side error" });
+      }
+    });
 
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      console.log("Price==========> ", price);
+      const amount = parseInt(price * 100);
 
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    /*================================== Booked Trainers Related APIs =================================*/
+    app.post("/booked-trainers", async (req, res) => {
+      try {
+        const newBookedTrainer = req.body;
+        const result = await bookedTrainersCollection.insertOne(
+          newBookedTrainer
+        );
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "There was a server side error" });
+      }
+    });
+
+    app.get("/booked-trainers", async (req, res) => {
+      const query = req.query;
+      console.log(query);
+      try {
+        const bookedItem = await bookedTrainersCollection.findOne(query);
+        res.send(bookedItem);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "There was a server side error" });
+      }
+    });
 
     /*================================== Classes Related APIs =================================*/
     app.get("/classes", async (req, res) => {
