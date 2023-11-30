@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const mongoose = require('mongoose')
 const dotenv = require("dotenv");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 dotenv.config();
 const jwt = require("jsonwebtoken");
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
@@ -9,7 +9,15 @@ const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const app = express();
 const port = process.env.PORT || 9000;
 
-//Middlewares
+
+//Models
+
+
+
+
+
+
+//Built-in Middlewares
 app.use(
   cors({
     origin: ["http://localhost:5173"],
@@ -17,6 +25,9 @@ app.use(
   })
 );
 app.use(express.json());
+
+
+
 
 //JWT Routes
 app.post("/set-cookie", (req, res) => {
@@ -28,76 +39,69 @@ app.post("/set-cookie", (req, res) => {
 
 //Custom middlewares
 const verifyJwt = (req, res, next) => {
-  console.log("Verify Jwt first!!!");
-  const data = req.headers;
-  console.log("Headers data========> ", data);
-  next();
+  const token = req.headers?.authorization?.split(" ")[1]
+  if(!token){
+    res.status(401).send({error:true, message:"Unauthorized Access"})
+    return;
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET_KEY, (error, decoded)=>{
+    if(error){
+      res.status(403).send({error:true, message:"Forbidden Access"})
+      return;
+    }
+    req.decoded = decoded
+    next();
+  })
 };
 
-const verifyAdmin = (req, res, next) => {};
+const verifyAdmin = (req, res, next) => {
+  const email = req.decoded?.email;
+  console.log("Decoded email==========> ", email)
+  next()
+};
+
 
 //default routes
 app.get("/", (req, res) => {
   res.send(`Fitness server is running on port ${port}`);
 });
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0ak1okw.mongodb.net/?retryWrites=true&w=majority`;
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
-async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-    // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
-    const blogsCollection = client.db("fitnessDB").collection("blogs");
-    const reviewsCollection = client.db("fitnessDB").collection("reviews");
-    const featuresCollection = client.db("fitnessDB").collection("features");
-    const teamCollection = client.db("fitnessDB").collection("team");
-    const classesCollection = client.db("fitnessDB").collection("classes");
-    const schedulesCollection = client.db("fitnessDB").collection("schedules");
-    const forumsCollection = client.db("fitnessDB").collection("forums");
-    const trainersCollection = client.db("fitnessDB").collection("trainers");
-    const galleryCollection = client.db("fitnessDB").collection("gallery");
-    const bookedTrainersCollection = client
-      .db("fitnessDB")
-      .collection("bookedTrainers");
-    const bookedPaymentsCollection = client
-      .db("fitnessDB")
-      .collection("bookedPayments");
-    const trainerPaymentsCollection = client
-      .db("fitnessDB")
-      .collection("trainerPayments");
 
-    const subscriptionsCollection = client
-      .db("fitnessDB")
-      .collection("subscriptions");
-    const usersCollection = client.db("fitnessDB").collection("users");
+
+
+
+
+//Connect to database using mongoose
+mongoose.connect(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.0ak1okw.mongodb.net/fitnessDB?retryWrites=true&w=majority`)
+.then(()=>{
+    console.log("FitnessHub server connection was successful")
+})
+.catch(error => {
+    console.log("FitnessHub server connection=====> ", error)
+})
+
+    const Blog = mongoose.model('Blog', {});
 
     app.get("/blogs", async (req, res) => {
       try {
-        const blogs = await blogsCollection.find({}).toArray();
+        const blogs = await Blog.find({});
         res.send(blogs);
       } catch (error) {
         res
           .status(500)
-          .send({ error: true, message: "There was a server side error" });
+          .send({ error: error, message: "There was a server side error" });
       }
     });
 
+
+    
+    const Feature = mongoose.model('Feature', {});
+
     app.get("/features", async (req, res) => {
       try {
-        const features = await featuresCollection.find({}).toArray();
+        const features = await Feature.find({});
         res.send(features);
       } catch (error) {
         res
@@ -106,9 +110,13 @@ async function run() {
       }
     });
 
+
+
+    const Review = mongoose.model('Review', {})
+
     app.get("/reviews", async (req, res) => {
       try {
-        const reviews = await reviewsCollection.find({}).toArray();
+        const reviews = await Review.find({});
         res.send(reviews);
       } catch (error) {
         res
@@ -117,9 +125,17 @@ async function run() {
       }
     });
 
-    app.get("/team", async (req, res) => {
+
+
+
+
+
+
+    const Team = mongoose.model('Team', {})
+
+    app.get("/teams", async (req, res) => {
       try {
-        const team = await teamCollection.find({}).toArray();
+        const team = await Team.find();
         res.send(team);
       } catch (error) {
         res
@@ -128,45 +144,14 @@ async function run() {
       }
     });
 
-    /*================================== Payment  Related APIs =================================*/
-    app.post("/booking-payments", async (req, res) => {
-      try {
-        const newPayment = req.body;
-        const result = await bookedPaymentsCollection.insertOne(newPayment);
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
 
-    app.post("/trainer-payments", async (req, res) => {
-      try {
-        const newPayment = req.body;
-        const result = await trainerPaymentsCollection.insertOne(newPayment);
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
     
-//Change payment status
-    app.patch("/change-payment-status/:trainerId", async (req, res) => {
+    const Gallerie = mongoose.model('Gallerie', {})
+
+    app.get("/galleries", async (req, res) => {
       try {
-        const { trainerId } = req.params;
-        const filter = { _id: new ObjectId(trainerId) };
-        const updateDoc = {
-          $set: {
-            status: "paid",
-          },
-        };
-        const result = await trainersCollection.updateOne(filter, updateDoc, {
-          upsert: false,
-        });
-        res.send(result);
+        const galleries = await Gallerie.find();
+        res.send(galleries);
       } catch (error) {
         res
           .status(500)
@@ -174,29 +159,27 @@ async function run() {
       }
     });
 
-    app.post("/create-payment-intent", async (req, res) => {
-      const { price } = req.body;
-      console.log("Price==========> ", price);
-      const amount = parseInt(price * 100);
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "usd",
-        payment_method_types: ["card"],
-      });
-      res.send({
-        clientSecret: paymentIntent.client_secret,
-      });
-    });
 
-    /*================================== Booked Trainers Related APIs =================================*/
-    app.post("/booked-trainers", async (req, res) => {
+
+//     /*================================== Payment  Related APIs =================================*/
+//     app.post("/booking-payments", verifyJwt, async (req, res) => {
+//       try {
+//         const newPayment = req.body;
+//         const result = await bookedPaymentsCollection.insertOne(newPayment);
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+
+       const BookedPayment = mongoose.model('BookedPayment', {})
+    app.get("/booking-payments",verifyJwt, async(req, res) => {
       try {
-        const newBookedTrainer = req.body;
-        const result = await bookedTrainersCollection.insertOne(
-          newBookedTrainer
-        );
-        res.send(result);
+        const bookingPayments = await BookedPayment.find({});
+        res.send(bookingPayments);
       } catch (error) {
         res
           .status(500)
@@ -204,11 +187,93 @@ async function run() {
       }
     });
 
-    app.get("/booked-trainers", async (req, res) => {
+
+//     app.post("/trainer-payments", verifyJwt, verifyAdmin, async (req, res) => {
+//       try {
+//         const newPayment = req.body;
+//         const result = await trainerPaymentsCollection.insertOne(newPayment);
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+
+const TrainerPayment = mongoose.model('TrainerPayment', {})
+    app.get("/trainer-payments",verifyJwt, verifyAdmin, async(req, res) => {
+      try {
+        const trainerPayments = await TrainerPayment.find({});
+        res.send(trainerPayments);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "There was a server side error" });
+      }
+    });
+
+
+
+
+
+// //Change payment status
+//     app.patch("/change-payment-status/:trainerId", verifyJwt, verifyAdmin, async (req, res) => {
+//       try {
+//         const { trainerId } = req.params;
+//         const filter = { _id: new ObjectId(trainerId) };
+//         const updateDoc = {
+//           $set: {
+//             status: "paid",
+//           },
+//         };
+//         const result = await trainersCollection.updateOne(filter, updateDoc, {
+//           upsert: false,
+//         });
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+// //Create intent for payment
+//     app.post("/create-payment-intent", verifyJwt, async (req, res) => {
+//       const { price } = req.body;
+//       if(price > 0){
+//       const amount = parseInt(price * 100);
+
+//       const paymentIntent = await stripe.paymentIntents.create({
+//         amount: amount,
+//         currency: "usd",
+//         payment_method_types: ["card"],
+//       });
+//       res.send({
+//        ret: paymentIntent cret,
+//       });
+//     }
+//     });
+
+//     /*================================== Booked Trainers Related APIs =================================*/
+//     app.post("/booked-trainers", verifyJwt, async (req, res) => {
+//       try {
+//         const newBookedTrainer = req.body;
+//         const result = await bookedTrainersCollection.insertOne(
+//           newBookedTrainer
+//         );
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+
+
+const BookedTrainer = mongoose.model('BookedTrainer', {})
+    app.get("/booked-trainers",verifyJwt, async (req, res) => {
       const query = req.query;
-      console.log(query);
       try {
-        const bookedItem = await bookedTrainersCollection.findOne(query);
+        const bookedItem = await BookedTrainer.findOne(query);
         res.send(bookedItem);
       } catch (error) {
         res
@@ -217,10 +282,26 @@ async function run() {
       }
     });
 
-    /*================================== Classes Related APIs =================================*/
+
+    app.get("/members-booked", async (req, res) => {
+      const query = req.query;
+      try {
+        const membersBooked = await BookedTrainer.find(query);
+        res.send(membersBooked);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "There was a server side error" });
+      }
+    });
+
+
+  
+//     /*================================== Classes Related APIs =================================*/
+const Class = mongoose.model('Class', {})
     app.get("/classes", async (req, res) => {
       try {
-        const classes = await classesCollection.find({}).toArray();
+        const classes = await Class.find({});
         res.send(classes);
       } catch (error) {
         res
@@ -229,12 +310,14 @@ async function run() {
       }
     });
 
+
+
     app.get("/classes/:classId", async (req, res) => {
       try {
         const classId = req.params.classId;
-        const query = { _id: new ObjectId(classId) };
+        const query = { _id: classId};
 
-        const singleClass = await classesCollection.findOne(query);
+        const singleClass = await Class.findOne(query);
         res.send(singleClass);
       } catch (error) {
         res
@@ -243,21 +326,23 @@ async function run() {
       }
     });
 
-    app.post("/classes", async (req, res) => {
-      try {
-        const newClass = req.body;
-        const result = await classesCollection.insertOne(newClass);
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
+//     app.post("/classes", async (req, res) => {
+//       try {
+//         const newClass = req.body;
+//         const result = await classesCollection.insertOne(newClass);
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
 
+
+const Schedules = mongoose.model('Schedules', {})
     app.get("/schedules", async (req, res) => {
       try {
-        const schedules = await schedulesCollection.find({}).toArray();
+        const schedules = await Schedules.find({});
         res.send(schedules);
       } catch (error) {
         res
@@ -265,112 +350,101 @@ async function run() {
           .send({ error: true, message: "There was a server side error" });
       }
     });
-    /*================================== Forums Related APIs =================================*/
+
+
+//     /*================================== Forums Related APIs =================================*/
+  const Forum = mongoose.model('Forum', {})
+
     app.get("/forums", async (req, res) => {
       //pagination
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
 
-      const result = await forumsCollection
-        .find()
+      const result = await Forum
+        .find({})
         .skip(page * size)
         .limit(size)
-        .toArray();
       res.send(result);
     });
 
-    app.put("/forums/:id", async (req, res) => {
-      try {
-        const email = req.body.email;
-        const forumId = req.params.id;
-        const query = { _id: new ObjectId(forumId) };
+//     app.put("/forums/:id", async (req, res) => {
+//       try {
+//         const email = req.body.email;
+//         const forumId = req.params.id;
+//         const query = { _id: new ObjectId(forumId) };
 
-        const forum = await forumsCollection.findOne(query);
+//         const forum = await forumsCollection.findOne(query);
 
-        console.log(
-          "user email======> ",
-          email,
-          "forum email=========> ",
-          forum.emails
-        );
-        console.log(email === forum.emails);
+//         if (forum?.likedBy === email) {
+//           const updateDoc = {
+//             $set: { likes: forum.likes - 1, likedBy: "" },
+//           };
 
-        if (forum?.likedBy === email) {
-          const updateDoc = {
-            $set: { likes: forum.likes - 1, likedBy: "" },
-          };
+//           const result = await forumsCollection.updateOne(query, updateDoc, {
+//             upsert: false,
+//           });
+//           res.send(result);
+//           return;
+//         }
 
-          const result = await forumsCollection.updateOne(query, updateDoc, {
-            upsert: false,
-          });
-          res.send(result);
-          return;
-        }
+//         const updateDoc = {
+//           $set: { likes: forum.likes + 1, likedBy: email },
+//         };
+//         const result = await forumsCollection.updateOne(query, updateDoc, {
+//           upsert: false,
+//         });
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
 
-        const updateDoc = {
-          $set: { likes: forum.likes + 1, likedBy: email },
-        };
-        const result = await forumsCollection.updateOne(query, updateDoc, {
-          upsert: false,
-        });
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
+//     app.post("/forums", async (req, res) => {
+//       try {
+//         const newForum = req.body;
+//         const result = await forumsCollection.insertOne(newForum);
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
 
-    app.post("/forums", async (req, res) => {
-      try {
-        const newForum = req.body;
-        const result = await forumsCollection.insertOne(newForum);
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
+//     // users related apis
+//     app.post("/users", async (req, res) => {
+//       try {
+//         const newUser = req.body;
+//         const email = newUser.email;
+//         const query = { email };
 
-    app.get("/gallery", async (req, res) => {
-      try {
-        const gallery = await galleryCollection.find({}).toArray();
-        res.send(gallery);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
+//         const isExist = await usersCollection.findOne(query);
+//         //check if user already exist
+//         if (!isExist) {
+//           const result = await usersCollection.insertOne(newUser);
+//           res.send(result);
+//         }else{
+//           res.send([])
+//         }
 
-    // users related apis
-    app.post("/users", async (req, res) => {
-      try {
-        const newUser = req.body;
-        const email = newUser.email;
-        const query = { email };
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
 
-        const isExist = await usersCollection.findOne(query);
 
-        //check if user already exist
-        if (!isExist) {
-          const result = await usersCollection.insertOne(newUser);
-          res.send(result);
-        }
-        res.send([]);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
-
+  const User = mongoose.model("User", {})
     app.get("/users", async (req, res) => {
       try {
         const query = { email: req.query?.email };
-        const loggedInUser = await usersCollection.findOne(query);
-        res.send({ role: loggedInUser.role });
+        console.log(query)
+        const loggedInUser = await User.findOne(query);
+        console.log(loggedInUser)
+        res.send(loggedInUser);
       } catch (error) {
         res
           .status(500)
@@ -378,10 +452,11 @@ async function run() {
       }
     });
 
-    /*================================== Trainers Related APIs =================================*/
+//     /*================================== Trainers Related APIs =================================*/
+   const Trainer = mongoose.model("Trainer", {})
     app.get("/trainers", async (req, res) => {
       try {
-        const trainers = await trainersCollection.find({}).toArray();
+        const trainers = await Trainer.find({});
         res.send(trainers);
       } catch (error) {
         res
@@ -393,9 +468,9 @@ async function run() {
     app.get("/trainers/:id", async (req, res) => {
       try {
         const trainerId = req.params.id;
-        const query = { _id: new ObjectId(trainerId) };
+        const query = { _id:trainerId};
 
-        const trainer = await trainersCollection.findOne(query);
+        const trainer = await Trainer.findOne(query);
         res.send(trainer);
       } catch (error) {
         res
@@ -404,22 +479,23 @@ async function run() {
       }
     });
 
-    app.post("/trainers", async (req, res) => {
-      try {
-        const newTrainer = req.body;
-        const result = await trainersCollection.insertOne(newTrainer);
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
 
-    app.get("/applied-trainers", async (req, res) => {
+//     app.post("/trainers", async (req, res) => {
+//       try {
+//         const newTrainer = req.body;
+//         const result = await trainersCollection.insertOne(newTrainer);
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+
+    app.get("/applied-trainers",verifyAdmin, async (req, res) => {
       try {
         const query = req.query;
-        const appliedTrainers = await trainersCollection.find(query).toArray();
+        const appliedTrainers = await Trainer.find(query);
         res.send(appliedTrainers);
       } catch (error) {
         res
@@ -428,42 +504,43 @@ async function run() {
       }
     });
 
-    app.patch("/trainers/:trainerId", async (req, res) => {
+
+//     app.patch("/trainers/:trainerId", async (req, res) => {
+//       try {
+//         const id = req.params.trainerId;
+//         const filter = { _id: new ObjectId(id) };
+
+//         const updateDoc = {
+//           $set: { application: "accepted" },
+//         };
+
+//         const result = await trainersCollection.updateOne(filter, updateDoc, {
+//           upsert: false,
+//         });
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+
+//     /*================================== Subscription Related APIs =================================*/
+//     app.post("/subscriptions", async (req, res) => {
+//       try {
+//         const newSubscription = req.body;
+//         const result = await subscriptionsCollection.insertOne(newSubscription);
+//         res.send(result);
+//       } catch (error) {
+//         res
+//           .status(500)
+//           .send({ error: true, message: "There was a server side error" });
+//       }
+//     });
+    const Subscription = mongoose.model('Subscription', {})
+    app.get("/subscriptions", verifyJwt, verifyAdmin, async (req, res) => {
       try {
-        const id = req.params.trainerId;
-        const filter = { _id: new ObjectId(id) };
-
-        const updateDoc = {
-          $set: { application: "accepted" },
-        };
-
-        const result = await trainersCollection.updateOne(filter, updateDoc, {
-          upsert: false,
-        });
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
-
-    /*================================== Subscription Related APIs =================================*/
-    app.post("/subscriptions", async (req, res) => {
-      try {
-        const newSubscription = req.body;
-        const result = await subscriptionsCollection.insertOne(newSubscription);
-        res.send(result);
-      } catch (error) {
-        res
-          .status(500)
-          .send({ error: true, message: "There was a server side error" });
-      }
-    });
-
-    app.get("/subscriptions", verifyJwt, async (req, res) => {
-      try {
-        const allSubscribers = await subscriptionsCollection.find().toArray();
+        const allSubscribers = await Subscription.find();
         res.send(allSubscribers);
       } catch (error) {
         res
@@ -471,12 +548,8 @@ async function run() {
           .send({ error: true, message: "There was a server side error" });
       }
     });
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
-}
-run().catch(console.dir);
+
+
 
 app.listen(port, () => {
   console.log(`Fitness server is listening at port ${port}`);
