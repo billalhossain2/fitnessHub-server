@@ -4,17 +4,19 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 dotenv.config();
 const jwt = require("jsonwebtoken");
+
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
+
+const verifyJwt = require('./Middlewares/verifyJwt')
+const verifyAdmin = require('./Middlewares/verifyAdmin')
 
 const app = express();
 const port = process.env.PORT || 9000;
 
-//Models
-
 //Built-in Middlewares
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["https://fitnesshub-3f0fd.web.app"],
     credentials: true,
   })
 );
@@ -28,29 +30,6 @@ app.post("/set-cookie", (req, res) => {
   res.send({ token });
 });
 
-//Custom middlewares
-const verifyJwt = (req, res, next) => {
-  const token = req.headers?.authorization?.split(" ")[1];
-  if (!token) {
-    res.status(401).send({ error: true, message: "Unauthorized Access" });
-    return;
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET_KEY, (error, decoded) => {
-    if (error) {
-      res.status(403).send({ error: true, message: "Forbidden Access" });
-      return;
-    }
-    req.decoded = decoded;
-    next();
-  });
-};
-
-const verifyAdmin = (req, res, next) => {
-  const email = req.decoded?.email;
-  console.log("Decoded email==========> ", email);
-  next();
-};
 
 //default routes
 app.get("/", (req, res) => {
@@ -70,10 +49,6 @@ mongoose
   });
 
 
-
-
-
-
   /*=======================Create intent for payment=================*/
   app.post("/create-payment-intent", verifyJwt, async (req, res) => {
     const { price } = req.body;
@@ -90,10 +65,6 @@ mongoose
     });
   }
   });
-
-
-
-
 
 
 
@@ -224,8 +195,6 @@ app.get("/trainer-payments", verifyJwt, verifyAdmin, async (req, res) => {
       .send({ error: true, message: "There was a server side error" });
   }
 });
-
-
 
 /*================================== Booked Trainers Related APIs =================================*/
 const BookedTrainer = mongoose.model("BookedTrainer", {
@@ -451,7 +420,6 @@ app.get("/users", async (req, res) => {
   }
 });
 
-
  /*================================== Trainers Related APIs =================================*/
 const Trainer = mongoose.model("Trainer", {
   name: String,
@@ -540,7 +508,7 @@ app.patch("/trainers/:trainerId", async (req, res) => {
 });
 
 
-// //Change payment status of a trainer
+//Change payment status of a trainer
     app.patch("/change-payment-status/:trainerId", verifyJwt, verifyAdmin, async (req, res) => {
       try {
         const { trainerId } = req.params;
@@ -558,7 +526,7 @@ app.patch("/trainers/:trainerId", async (req, res) => {
       }
     });
 
-//     /*================================== Subscription Related APIs =================================*/
+/*================================== Subscription Related APIs =================================*/
 const Subscription = mongoose.model("Subscription", {
   name: String,
   email: String,
@@ -576,7 +544,7 @@ app.post("/subscriptions", async (req, res) => {
   }
 });
 
-app.get("/subscriptions", verifyJwt, verifyAdmin, async (req, res) => {
+app.get("/subscriptions",verifyJwt, verifyAdmin, async (req, res) => {
   try {
     const allSubscribers = await Subscription.find();
     res.send(allSubscribers);
